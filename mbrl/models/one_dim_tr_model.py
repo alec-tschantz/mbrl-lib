@@ -14,17 +14,6 @@ import mbrl.util.math
 
 from .model import Ensemble, Model
 
-MODEL_LOG_FORMAT = [
-    ("train_iteration", "I", "int"),
-    ("epoch", "E", "int"),
-    ("train_dataset_size", "TD", "int"),
-    ("val_dataset_size", "VD", "int"),
-    ("model_loss", "MLOSS", "float"),
-    ("model_score", "MSCORE", "float"),
-    ("model_val_score", "MVSCORE", "float"),
-    ("model_best_val_score", "MBVSCORE", "float"),
-]
-
 
 class OneDTransitionRewardModel(Model):
     """Wrapper class for 1-D dynamics models.
@@ -272,12 +261,8 @@ class OneDTransitionRewardModel(Model):
         obs = model_util.to_tensor(model_state["obs"]).to(self.device)
         model_in = self._get_model_input(model_state["obs"], act)
         if not hasattr(self.model, "sample_1d"):
-            raise RuntimeError(
-                "OneDTransitionRewardModel requires wrapped model to define method sample_1d"
-            )
-        preds, next_model_state = self.model.sample_1d(
-            model_in, model_state, rng=rng, deterministic=deterministic
-        )
+            raise RuntimeError("OneDTransitionRewardModel requires wrapped model to define method sample_1d")
+        preds, next_model_state = self.model.sample_1d(model_in, model_state, rng=rng, deterministic=deterministic)
         next_observs = preds[:, :-1] if self.learned_rewards else preds
         if self.target_is_delta:
             tmp_ = next_observs + obs
@@ -288,9 +273,7 @@ class OneDTransitionRewardModel(Model):
         next_model_state["obs"] = next_observs
         return next_observs, rewards, None, next_model_state
 
-    def reset(
-        self, obs: torch.Tensor, rng: Optional[torch.Generator] = None
-    ) -> Dict[str, torch.Tensor]:
+    def reset(self, obs: torch.Tensor, rng: Optional[torch.Generator] = None) -> Dict[str, torch.Tensor]:
         """Calls reset on the underlying model.
 
         Args:
@@ -303,9 +286,7 @@ class OneDTransitionRewardModel(Model):
             (dict(str, tensor)): the model state necessary to continue the simulation.
         """
         if not hasattr(self.model, "reset_1d"):
-            raise RuntimeError(
-                "OneDTransitionRewardModel requires wrapped model to define method reset_1d"
-            )
+            raise RuntimeError("OneDTransitionRewardModel requires wrapped model to define method reset_1d")
         obs = model_util.to_tensor(obs).to(self.device)
         model_state = {"obs": obs}
         model_state.update(self.model.reset_1d(obs, rng=rng))

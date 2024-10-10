@@ -8,9 +8,6 @@ from gymnasium.error import DependencyNotInstalled
 
 
 class CartPoleEnv(gym.Env):
-    # This is a continuous version of gym's cartpole environment, with the only difference
-    # being valid actions are any numbers in the range [-1, 1], and the are applied as
-    # a multiplicative factor to the total force.
     metadata = {"render.modes": ["human", "rgb_array"], "video.frames_per_second": [50]}
 
     def __init__(self, render_mode: Optional[str] = None):
@@ -66,9 +63,7 @@ class CartPoleEnv(gym.Env):
 
         # For the interested reader:
         # https://coneural.org/florian/papers/05_cart_pole.pdf
-        temp = (
-            force + self.polemass_length * theta_dot**2 * sintheta
-        ) / self.total_mass
+        temp = (force + self.polemass_length * theta_dot**2 * sintheta) / self.total_mass
         thetaacc = (self.gravity * sintheta - costheta * temp) / (
             self.length * (4.0 / 3.0 - self.masspole * costheta**2 / self.total_mass)
         )
@@ -137,17 +132,13 @@ class CartPoleEnv(gym.Env):
             import pygame  # type: ignore
             from pygame import gfxdraw  # type: ignore
         except ImportError:
-            raise DependencyNotInstalled(
-                "pygame is not installed, run `pip install gymnasium[classic_control]`"
-            )
+            raise DependencyNotInstalled("pygame is not installed, run `pip install gymnasium[classic_control]`")
 
         if self.screen is None:
             pygame.init()
             if self.render_mode == "human":
                 pygame.display.init()
-                self.screen = pygame.display.set_mode(
-                    (self.screen_width, self.screen_height)
-                )
+                self.screen = pygame.display.set_mode((self.screen_width, self.screen_height))
             else:  # mode == "rgb_array"
                 self.screen = pygame.Surface((self.screen_width, self.screen_height))
         if self.clock is None:
@@ -217,9 +208,7 @@ class CartPoleEnv(gym.Env):
             pygame.display.flip()
 
         elif self.render_mode == "rgb_array":
-            return np.transpose(
-                np.array(pygame.surfarray.pixels3d(self.screen)), axes=(1, 0, 2)
-            )
+            return np.transpose(np.array(pygame.surfarray.pixels3d(self.screen)), axes=(1, 0, 2))
 
     def close(self):
         if self.screen is not None:

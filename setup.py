@@ -6,12 +6,9 @@ from pathlib import Path
 from setuptools import setup, find_packages
 
 
-def parse_requirements_file(path):
+def parse_requirements_file(path: str = "requirements.txt"):
     return [line.rstrip() for line in open(path, "r")]
 
-
-reqs_main = parse_requirements_file("requirements/main.txt")
-reqs_dev = parse_requirements_file("requirements/dev.txt")
 
 with open("README.md", "r") as f:
     long_description = f.read()
@@ -38,10 +35,7 @@ setup(
         "Intended Audience :: Science/Research",
         "Topic :: Scientific/Engineering :: Artificial Intelligence",
     ],
-    install_requires=reqs_main,
-    extras_require={
-        "dev": reqs_main + reqs_dev,
-    },
+    install_requires=parse_requirements_file(),
     include_package_data=True,
     python_requires=">=3.8",
     zip_safe=False,

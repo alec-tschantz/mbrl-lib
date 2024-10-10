@@ -12,20 +12,9 @@ import torch
 import tqdm
 from torch import optim as optim
 
-from mbrl.util.logger import Logger
 from mbrl.util.replay_buffer import BootstrapIterator, TransitionIterator
 
 from .model import Model
-
-MODEL_LOG_FORMAT = [
-    ("train_iteration", "I", "int"),
-    ("epoch", "E", "int"),
-    ("train_dataset_size", "TD", "int"),
-    ("val_dataset_size", "VD", "int"),
-    ("model_loss", "MLOSS", "float"),
-    ("model_val_score", "MVSCORE", "float"),
-    ("model_best_val_score", "MBVSCORE", "float"),
-]
 
 
 class ModelTrainer:
@@ -38,27 +27,15 @@ class ModelTrainer:
         logger (:class:`mbrl.util.Logger`, optional): the logger to use.
     """
 
-    _LOG_GROUP_NAME = "model_train"
-
     def __init__(
         self,
         model: Model,
         optim_lr: float = 1e-4,
         weight_decay: float = 1e-5,
         optim_eps: float = 1e-8,
-        logger: Optional[Logger] = None,
     ):
         self.model = model
         self._train_iteration = 0
-
-        self.logger = logger
-        if self.logger:
-            self.logger.register_group(
-                self._LOG_GROUP_NAME,
-                MODEL_LOG_FORMAT,
-                color="blue",
-                dump_frequency=1,
-            )
 
         self.optimizer = optim.Adam(
             self.model.parameters(),
@@ -160,14 +137,10 @@ class ModelTrainer:
             eval_score = None
             model_val_score = 0
             if evaluate:
-                eval_score = self.evaluate(
-                    eval_dataset, batch_callback=batch_callback_epoch
-                )
+                eval_score = self.evaluate(eval_dataset, batch_callback=batch_callback_epoch)
                 val_scores.append(eval_score.mean().item())
 
-                maybe_best_weights = self.maybe_get_best_weights(
-                    best_val_score, eval_score, improvement_threshold
-                )
+                maybe_best_weights = self.maybe_get_best_weights(best_val_score, eval_score, improvement_threshold)
                 if maybe_best_weights:
                     best_val_score = torch.minimum(best_val_score, eval_score)
                     best_weights = maybe_best_weights
@@ -176,23 +149,6 @@ class ModelTrainer:
                     epochs_since_update += 1
                 model_val_score = eval_score.mean()
 
-            if self.logger and not silent:
-                self.logger.log_data(
-                    self._LOG_GROUP_NAME,
-                    {
-                        "iteration": self._train_iteration,
-                        "epoch": epoch,
-                        "train_dataset_size": dataset_train.num_stored,
-                        "val_dataset_size": dataset_val.num_stored
-                        if dataset_val is not None
-                        else 0,
-                        "model_loss": total_avg_loss,
-                        "model_val_score": model_val_score,
-                        "model_best_val_score": best_val_score.mean()
-                        if best_val_score is not None
-                        else 0,
-                    },
-                )
             if callback:
                 callback(
                     self.model,
@@ -213,9 +169,7 @@ class ModelTrainer:
         self._train_iteration += 1
         return training_losses, val_scores
 
-    def evaluate(
-        self, dataset: TransitionIterator, batch_callback: Optional[Callable] = None
-    ) -> torch.Tensor:
+    def evaluate(self, dataset: TransitionIterator, batch_callback: Optional[Callable] = None) -> torch.Tensor:
         """Evaluates the model on the validation dataset.
 
         Iterates over the dataset, one batch at a time, and calls
@@ -244,9 +198,7 @@ class ModelTrainer:
             if batch_callback:
                 batch_callback(batch_score.mean(), meta, "eval")
         try:
-            batch_scores = torch.cat(
-                batch_scores_list, dim=batch_scores_list[0].ndim - 2
-            )
+            batch_scores = torch.cat(batch_scores_list, dim=batch_scores_list[0].ndim - 2)
         except RuntimeError as e:
             print(
                 f"There was an error calling ModelTrainer.evaluate(). "
@@ -285,9 +237,7 @@ class ModelTrainer:
         improved = (improvement > threshold).any().item()
         return copy.deepcopy(self.model.state_dict()) if improved else None
 
-    def _maybe_set_best_weights_and_elite(
-        self, best_weights: Optional[Dict], best_val_score: torch.Tensor
-    ):
+    def _maybe_set_best_weights_and_elite(self, best_weights: Optional[Dict], best_val_score: torch.Tensor):
         if best_weights is not None:
             self.model.load_state_dict(best_weights)
         if len(best_val_score) > 1 and hasattr(self.model, "num_elites"):
